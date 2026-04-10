@@ -3,15 +3,12 @@ const path = require('path');
 
 const app = express();
 
-// مهم جداً لحل مشاكل Vercel
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// تخدم الملفات الثابتة
+app.use(express.static(__dirname));
 
-// API إرسال جماعي
 app.post('/api/send-bulk', (req, res) => {
     try {
         const { name, phones, gender } = req.body || {};
@@ -26,9 +23,9 @@ app.post('/api/send-bulk', (req, res) => {
 
         const encoded = encodeURIComponent(message);
 
-        const urls = phones.map(phone => {
-            return `https://wa.me/${phone}?text=${encoded}`;
-        });
+        const urls = phones.map(phone =>
+            `https://wa.me/${phone}?text=${encoded}`
+        );
 
         return res.status(200).json({ urls });
 
