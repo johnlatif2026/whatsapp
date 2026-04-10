@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>إرسال رسالة واتساب</title>
+    <title>إرسال جماعي واتساب</title>
     <style>
         body {
             font-family: Arial;
@@ -18,20 +18,14 @@
             background: #fff;
             padding: 25px;
             border-radius: 10px;
-            width: 300px;
+            width: 350px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
 
-        h2 {
-            text-align: center;
-        }
-
-        input, select, button {
+        textarea, input, select, button {
             width: 100%;
             padding: 10px;
             margin-top: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
         }
 
         button {
@@ -40,50 +34,47 @@
             border: none;
             cursor: pointer;
         }
-
-        button:hover {
-            background: #1ebe5d;
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>إرسال رسالة واتساب</h2>
+    <h3>إرسال جماعي واتساب</h3>
 
     <input type="text" id="name" placeholder="الاسم">
-    <input type="text" id="phone" placeholder="رقم الواتساب (2010...)">
+
+    <textarea id="phones" placeholder="اكتب الأرقام (كل رقم في سطر)&#10;2010xxxxxxx&#10;2011xxxxxxx"></textarea>
 
     <select id="gender">
         <option value="male">ولد</option>
         <option value="female">بنت</option>
     </select>
 
-    <button onclick="sendMessage()">إرسال</button>
+    <button onclick="sendBulk()">إرسال جماعي</button>
 </div>
 
 <script>
-    async function sendMessage() {
-        const name = document.getElementById("name").value;
-        const phone = document.getElementById("phone").value;
-        const gender = document.getElementById("gender").value;
+async function sendBulk() {
+    const name = document.getElementById("name").value;
+    const phonesText = document.getElementById("phones").value;
+    const gender = document.getElementById("gender").value;
 
-        const response = await fetch('/api/send', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ name, phone, gender })
+    const phones = phonesText.split('\n').map(p => p.trim()).filter(p => p);
+
+    const res = await fetch('/api/send-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phones, gender })
+    });
+
+    const data = await res.json();
+
+    if (data.urls) {
+        data.urls.forEach(url => {
+            window.open(url, '_blank');
         });
-
-        const data = await response.json();
-
-        if (data.url) {
-            window.open(data.url, '_blank');
-        } else {
-            alert("حدث خطأ");
-        }
     }
+}
 </script>
 
 </body>
