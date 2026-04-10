@@ -1,11 +1,7 @@
 {
-  "name": "whatsapp-sender",
+  "name": "whatsapp-bulk-sender",
   "version": "1.0.0",
-  "description": "Send WhatsApp messages using Node.js",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
   "dependencies": {
     "express": "^4.18.2"
   }
