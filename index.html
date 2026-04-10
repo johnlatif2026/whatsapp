@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>واتساب جماعي</title>
+<title>WhatsApp Dashboard</title>
 
 <style>
 body {
@@ -11,22 +11,43 @@ body {
     font-family: Arial;
     background: #0f172a;
     color: white;
-    display: flex;
-    justify-content: center;
-    padding: 20px;
 }
 
 .container {
-    width: 100%;
-    max-width: 500px;
-    background: #111827;
+    max-width: 900px;
+    margin: auto;
     padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.5);
 }
 
 h2 {
     text-align: center;
+}
+
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab {
+    flex: 1;
+    padding: 10px;
+    background: #1f2937;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 10px;
+}
+
+.tab.active {
+    background: #22c55e;
+}
+
+.card {
+    background: #111827;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
 }
 
 input, select, button {
@@ -35,7 +56,6 @@ input, select, button {
     margin-top: 10px;
     border-radius: 10px;
     border: none;
-    font-size: 14px;
 }
 
 input, select {
@@ -54,22 +74,9 @@ button:hover {
     background: #16a34a;
 }
 
-.list {
-    margin-top: 20px;
-}
+.hidden { display: none; }
 
-.person {
-    background: #1f2937;
-    padding: 10px;
-    border-radius: 10px;
-    margin-top: 10px;
-    display: flex;
-    justify-content: space-between;
-}
-.small {
-    font-size: 12px;
-    opacity: 0.7;
-}
+.small { font-size: 12px; opacity: 0.7; }
 </style>
 </head>
 
@@ -77,42 +84,56 @@ button:hover {
 
 <div class="container">
 
-<h2>📱 واتساب جماعي</h2>
+<h2>📊 WhatsApp Dashboard</h2>
 
-<input id="name" placeholder="الاسم">
-<input id="phone" placeholder="رقم الهاتف (2010...)" >
-<select id="gender">
-    <option value="male">ولد</option>
-    <option value="female">بنت</option>
-</select>
+<div class="tabs">
+    <button class="tab active" onclick="showTab('add')">➕ إضافة</button>
+    <button class="tab" onclick="showTab('people')">👥 الأشخاص</button>
+    <button class="tab" onclick="showTab('send')">🚀 إرسال</button>
+    <button class="tab" onclick="showTab('logs')">📜 السجل</button>
+</div>
 
-<button onclick="addPerson()">➕ إضافة</button>
+<!-- ADD -->
+<div id="add">
+    <div class="card">
+        <input id="name" placeholder="الاسم">
+        <input id="phone" placeholder="الرقم (2010...)">
+        <select id="gender">
+            <option value="male">ولد</option>
+            <option value="female">بنت</option>
+        </select>
+        <button onclick="addPerson()">إضافة</button>
+    </div>
+</div>
 
-<button onclick="sendAll()">🚀 إرسال للجميع</button>
+<!-- PEOPLE -->
+<div id="people" class="hidden"></div>
 
-<div class="list" id="list"></div>
+<!-- SEND -->
+<div id="send" class="hidden">
+    <div class="card">
+        <button onclick="sendAll()">🚀 إرسال للجميع</button>
+    </div>
+</div>
+
+<!-- LOGS -->
+<div id="logs" class="hidden"></div>
 
 </div>
 
 <script>
 
-async function load() {
-    const res = await fetch('/api/people');
-    const data = await res.json();
+function showTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
 
-    const list = document.getElementById("list");
-    list.innerHTML = "";
+    document.querySelectorAll('#add,#people,#send,#logs')
+    .forEach(el => el.classList.add('hidden'));
 
-    data.forEach(p => {
-        list.innerHTML += `
-        <div class="person">
-            <div>
-                <div>${p.name}</div>
-                <div class="small">${p.phone}</div>
-            </div>
-            <div>${p.gender === "male" ? "👦" : "👧"}</div>
-        </div>`;
-    });
+    document.getElementById(tab).classList.remove('hidden');
+
+    if(tab === "people") loadPeople();
+    if(tab === "logs") loadLogs();
 }
 
 async function addPerson() {
@@ -120,31 +141,62 @@ async function addPerson() {
     const phone = document.getElementById("phone").value;
     const gender = document.getElementById("gender").value;
 
-    await fetch('/api/add-person', {
+    await fetch('/api/add', {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: {"Content-Type":"application/json"},
         body: JSON.stringify({name, phone, gender})
     });
 
+    alert("تمت الإضافة");
+
     document.getElementById("name").value = "";
     document.getElementById("phone").value = "";
+}
 
-    load();
+async function loadPeople() {
+    const res = await fetch('/api/people');
+    const data = await res.json();
+
+    const box = document.getElementById("people");
+    box.innerHTML = "";
+
+    data.forEach(p => {
+        box.innerHTML += `
+        <div class="card">
+            <div>${p.name}</div>
+            <div class="small">${p.phone}</div>
+            <div>${p.gender}</div>
+        </div>`;
+    });
 }
 
 async function sendAll() {
-    const res = await fetch('/api/send-all', {
-        method: "POST"
-    });
-
+    const res = await fetch('/api/send-all', { method: "POST" });
     const data = await res.json();
 
-    if (data.urls) {
-        data.urls.forEach(url => window.open(url, "_blank"));
-    }
+    data.urls.forEach(url => {
+        window.open(url, "_blank");
+    });
 }
 
-load();
+async function loadLogs() {
+    const res = await fetch('/api/messages');
+    const data = await res.json();
+
+    const box = document.getElementById("logs");
+    box.innerHTML = "";
+
+    data.forEach(m => {
+        box.innerHTML += `
+        <div class="card">
+            <div><b>${m.name}</b></div>
+            <div class="small">${m.phone}</div>
+            <div class="small">${m.message}</div>
+            <div>status: ${m.status}</div>
+        </div>`;
+    });
+}
+
 </script>
 
 </body>
