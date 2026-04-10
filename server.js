@@ -1,8 +1,10 @@
 const express = require('express');
 
+const app = express();
+
+// مهم جداً لحل مشاكل Vercel
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -23,8 +25,8 @@ app.post('/api/send-bulk', (req, res) => {
 
         const encoded = encodeURIComponent(message);
 
-        const urls = phones.map(p => {
-            return `https://wa.me/${p}?text=${encoded}`;
+        const urls = phones.map(phone => {
+            return `https://wa.me/${phone}?text=${encoded}`;
         });
 
         return res.status(200).json({ urls });
