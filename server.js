@@ -1,65 +1,118 @@
 const express = require('express');
+const admin = require('firebase-admin');
 const path = require('path');
-const fs = require('fs');
+require('dotenv').config();
 
 const app = express();
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-const DB_FILE = path.join(__dirname, 'data.json');
+/* ================= FIREBASE INIT ================= */
 
-// تحميل البيانات
-function loadData() {
-    if (!fs.existsSync(DB_FILE)) return [];
-    return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-}
+const serviceAccount = require(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 
-// حفظ البيانات
-function saveData(data) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-}
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
 
-// إضافة شخص
-app.post('/api/add-person', (req, res) => {
-    const { name, phone, gender } = req.body;
+const db = admin.firestore();
 
-    if (!name || !phone || !gender) {
-        return res.status(400).json({ error: "missing data" });
+/* ================= ADD PERSON ================= */
+
+app.post('/api/add', async (req, res) => {
+    try {
+        const { name, phone, gender } = req.body;
+
+        if (!name || !phone || !gender) {
+            return res.status(400).json({ error: "missing data" });
+        }
+
+        const doc = await db.collection('people').add({
+            name,
+            phone,
+            gender,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        res.json({ success: true, id: doc.id });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-
-    const data = loadData();
-
-    data.push({ name, phone, gender });
-
-    saveData(data);
-
-    res.json({ success: true, data });
 });
 
-// جلب السجل
-app.get('/api/people', (req, res) => {
-    res.json(loadData());
+/* ================= GET PEOPLE ================= */
+
+app.get('/api/people', async (req, res) => {
+    const snapshot = await db.collection('people')
+        .orderBy('createdAt', 'desc')
+        .get();
+
+    const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+    }));
+
+    res.json(data);
 });
 
-// إرسال لكل الموجودين
-app.post('/api/send-all', (req, res) => {
-    const data = loadData();
+/* ================= SEND ALL ================= */
 
-    const urls = data.map(person => {
-        const message = person.gender === "male"
-            ? `كل سنة وانت طيب يا ${person.name} عيد قيامة سعيد عليك وعلى الاسرة يقلب اخوك`
-            : `كل سنة وانتِ طيبة يا ${person.name}`;
+app.post('/api/send-all', async (req, res) => {
+    try {
+        const snapshot = await db.collection('people').get();
 
-        return `https://wa.me/${person.phone}?text=${encodeURIComponent(message)}`;
-    });
+        const urls = [];
 
-    res.json({ urls });
+        for (let doc of snapshot.docs) {
+            const p = doc.data();
+
+            const message = p.gender === "male"
+                ? `كل سنة وانت طيب يا ${p.name} 🎉`
+                : `كل سنة وانتِ طيبة يا ${p.name} 🎉`;
+
+            const url = `https://wa.me/${p.phone}?text=${encodeURIComponent(message)}`;
+
+            await db.collection('messages').add({
+                personId: doc.id,
+                name: p.name,
+                phone: p.phone,
+                message,
+                status: "sent",
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            urls.push(url);
+        }
+
+        res.json({ urls });
+
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
+
+/* ================= GET MESSAGES ================= */
+
+app.get('/api/messages', async (req, res) => {
+    const snapshot = await db.collection('messages')
+        .orderBy('createdAt', 'desc')
+        .get();
+
+    const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+    }));
+
+    res.json(data);
+});
+
+/* ================= FRONT ================= */
 
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-module.exports = app;
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Server running on port " + PORT));
