@@ -1,37 +1,61 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// تخدم الملفات الثابتة
 app.use(express.static(__dirname));
 
-app.post('/api/send-bulk', (req, res) => {
-    try {
-        const { name, phones, gender } = req.body || {};
+const DB_FILE = path.join(__dirname, 'data.json');
 
-        if (!name || !phones || !gender) {
-            return res.status(400).json({ error: "missing data" });
-        }
+// تحميل البيانات
+function loadData() {
+    if (!fs.existsSync(DB_FILE)) return [];
+    return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+}
 
-        const message = gender === "male"
-            ? `كل سنة وانت طيب يا ${name} عيد قيامة سعيد عليك وعلى الاسرة يقلبي`
-            : `كل سنة وانتِ طيبة يا ${name}`;
+// حفظ البيانات
+function saveData(data) {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+}
 
-        const encoded = encodeURIComponent(message);
+// إضافة شخص
+app.post('/api/add-person', (req, res) => {
+    const { name, phone, gender } = req.body;
 
-        const urls = phones.map(phone =>
-            `https://wa.me/${phone}?text=${encoded}`
-        );
-
-        return res.status(200).json({ urls });
-
-    } catch (err) {
-        return res.status(500).json({ error: err.message });
+    if (!name || !phone || !gender) {
+        return res.status(400).json({ error: "missing data" });
     }
+
+    const data = loadData();
+
+    data.push({ name, phone, gender });
+
+    saveData(data);
+
+    res.json({ success: true, data });
+});
+
+// جلب السجل
+app.get('/api/people', (req, res) => {
+    res.json(loadData());
+});
+
+// إرسال لكل الموجودين
+app.post('/api/send-all', (req, res) => {
+    const data = loadData();
+
+    const urls = data.map(person => {
+        const message = person.gender === "male"
+            ? `كل سنة وانت طيب يا ${person.name} عيد قيامة سعيد عليك وعلى الاسرة يقلب اخوك`
+            : `كل سنة وانتِ طيبة يا ${person.name}`;
+
+        return `https://wa.me/${person.phone}?text=${encodeURIComponent(message)}`;
+    });
+
+    res.json({ urls });
 });
 
 app.get('*', (req, res) => {
