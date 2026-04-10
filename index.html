@@ -1,98 +1,150 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-    <meta charset="UTF-8">
-    <title>إرسال واتساب جماعي</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>واتساب جماعي</title>
 
-    <style>
-        body {
-            font-family: Arial;
-            background: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            direction: rtl;
-        }
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
 
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            width: 350px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
+.container {
+    width: 100%;
+    max-width: 500px;
+    background: #111827;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
 
-        input, textarea, select, button {
-            width: 100%;
-            margin-top: 10px;
-            padding: 10px;
-        }
+h2 {
+    text-align: center;
+}
 
-        button {
-            background: #25D366;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
+input, select, button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+}
 
-        button:hover {
-            background: #1ebe5d;
-        }
-    </style>
+input, select {
+    background: #1f2937;
+    color: white;
+}
+
+button {
+    background: #22c55e;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #16a34a;
+}
+
+.list {
+    margin-top: 20px;
+}
+
+.person {
+    background: #1f2937;
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+}
+.small {
+    font-size: 12px;
+    opacity: 0.7;
+}
+</style>
 </head>
+
 <body>
 
 <div class="container">
-    <h3>إرسال واتساب جماعي</h3>
 
-    <input type="text" id="name" placeholder="الاسم">
+<h2>📱 واتساب جماعي</h2>
 
-    <textarea id="phones" placeholder="اكتب الأرقام كل رقم في سطر
-2010xxxxxxx
-2011xxxxxxx"></textarea>
+<input id="name" placeholder="الاسم">
+<input id="phone" placeholder="رقم الهاتف (2010...)" >
+<select id="gender">
+    <option value="male">ولد</option>
+    <option value="female">بنت</option>
+</select>
 
-    <select id="gender">
-        <option value="male">ولد</option>
-        <option value="female">بنت</option>
-    </select>
+<button onclick="addPerson()">➕ إضافة</button>
 
-    <button onclick="send()">إرسال</button>
+<button onclick="sendAll()">🚀 إرسال للجميع</button>
+
+<div class="list" id="list"></div>
+
 </div>
 
 <script>
-async function send() {
+
+async function load() {
+    const res = await fetch('/api/people');
+    const data = await res.json();
+
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+
+    data.forEach(p => {
+        list.innerHTML += `
+        <div class="person">
+            <div>
+                <div>${p.name}</div>
+                <div class="small">${p.phone}</div>
+            </div>
+            <div>${p.gender === "male" ? "👦" : "👧"}</div>
+        </div>`;
+    });
+}
+
+async function addPerson() {
     const name = document.getElementById("name").value;
-    const phonesText = document.getElementById("phones").value;
+    const phone = document.getElementById("phone").value;
     const gender = document.getElementById("gender").value;
 
-    const phones = phonesText
-        .split("\n")
-        .map(p => p.trim())
-        .filter(p => p);
+    await fetch('/api/add-person', {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({name, phone, gender})
+    });
 
-    const res = await fetch('/api/send-bulk', {
-        method: 'POST',
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            name,
-            phones,
-            gender
-        })
+    document.getElementById("name").value = "";
+    document.getElementById("phone").value = "";
+
+    load();
+}
+
+async function sendAll() {
+    const res = await fetch('/api/send-all', {
+        method: "POST"
     });
 
     const data = await res.json();
 
     if (data.urls) {
-        data.urls.forEach(url => {
-            window.open(url, "_blank");
-        });
-    } else {
-        alert("حصل خطأ");
+        data.urls.forEach(url => window.open(url, "_blank"));
     }
 }
+
+load();
 </script>
 
 </body>
