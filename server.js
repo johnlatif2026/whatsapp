@@ -1,38 +1,29 @@
 const express = require('express');
-const path = require('path');
 
 const app = express();
 
 app.use(express.json());
 
-// عرض ملف index.html
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// API إرسال جماعي
+app.post('/api/send-bulk', (req, res) => {
+    const { name, phones, gender } = req.body;
 
-// API
-app.post('/api/send', (req, res) => {
-    const { name, phone, gender } = req.body;
-
-    if (!name || !phone || !gender) {
+    if (!name || !phones || !gender) {
         return res.status(400).json({ error: "بيانات ناقصة" });
     }
 
-    let message = "";
-
-    if (gender === "male") {
-        message = `كل سنة وانت طيب يا ${name}`;
-    } else {
-        message = `كل سنة وانتِ طيبة يا ${name}`;
-    }
+    let message = gender === "male"
+        ? `كل سنة وانت طيب يا ${name}`
+        : `كل سنة وانتِ طيبة يا ${name}`;
 
     const encodedMessage = encodeURIComponent(message);
-    const url = `https://wa.me/${phone}?text=${encodedMessage}`;
 
-    res.json({ url });
+    const urls = phones.map(phone => {
+        return `https://wa.me/${phone}?text=${encodedMessage}`;
+    });
+
+    res.json({ urls });
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// مهم جدًا لـ Vercel
+module.exports = app;
