@@ -18,7 +18,7 @@ app.post('/api/send-bulk', (req, res) => {
         }
 
         const message = gender === "male"
-            ? `كل سنة وانت طيب يا ${name}`
+            ? `كل سنة وانت طيب يا ${name} عيد قيامة سعيد عليك وعلى الاسرة يقلبي`
             : `كل سنة وانتِ طيبة يا ${name}`;
 
         const encoded = encodeURIComponent(message);
