@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>إرسال واتساب</title>
+</head>
+<body>
+
+<h2>إرسال تهنئة</h2>
+
+<input id="name" placeholder="الاسم">
+<input id="phone" placeholder="2010xxxxxxx">
+
+<select id="gender">
+<option value="male">ولد</option>
+<option value="female">بنت</option>
+</select>
+
+<button onclick="send()">إرسال</button>
+
+<script>
+async function send(){
+  const name = document.getElementById('name').value;
+  const phone = document.getElementById('phone').value;
+  const gender = document.getElementById('gender').value;
+
+  await fetch('/api/send',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({name, phone, gender})
+  });
+
+  alert('تم الإرسال');
+}
+</script>
+
+</body>
+</html>
