@@ -63,10 +63,14 @@ async function sendBulk() {
 
     const res = await fetch('/api/send-bulk', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phones, gender })
-    });
-
+        headers: {
+    "Content-Type": "application/json"
+},
+body: JSON.stringify({
+    name,
+    phones,
+    gender
+})
     const data = await res.json();
 
     if (data.urls) {
