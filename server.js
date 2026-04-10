@@ -3,6 +3,10 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // API إرسال جماعي
 app.post('/api/send-bulk', (req, res) => {
     const { name, phones, gender } = req.body;
