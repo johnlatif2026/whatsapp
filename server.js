@@ -1,7 +1,14 @@
 const express = require('express');
+const path = require('path');
+
 const app = express();
 
 app.use(express.json());
+
+// عرض ملف index.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // API
 app.post('/api/send', (req, res) => {
@@ -16,11 +23,10 @@ app.post('/api/send', (req, res) => {
     if (gender === "male") {
         message = `كل سنة وانت طيب يا ${name}`;
     } else {
-        message = `كل سنة وانتي طيبة يا ${name}`;
+        message = `كل سنة وانتِ طيبة يا ${name}`;
     }
 
     const encodedMessage = encodeURIComponent(message);
-
     const url = `https://wa.me/${phone}?text=${encodedMessage}`;
 
     res.json({ url });
